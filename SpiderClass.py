@@ -247,5 +247,5 @@ class WeiboSpider():
 
     def IgnoreUser(self):
 
-        print '微博uid ' + self.Uid + ' 已跳过'
+        print u'微博uid ' + self.Uid + u' 已跳过'
         raise self.Ignore()
