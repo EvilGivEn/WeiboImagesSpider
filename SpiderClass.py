@@ -15,7 +15,7 @@ class WeiboSpider():
     
     def __init__(self, Cookie, OneUser):
 
-        self.Header = {
+        self.Headers = {
             'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Encoding':'gzip, deflate, sdch',
             'Accept-Language':'zh-CN,zh;q=0.8',
@@ -39,7 +39,7 @@ class WeiboSpider():
             os.makedirs(self.Path)
 
         try:
-            html = requests.get(url = self.Url + '?filter=1&page=1', headers = self.Header)
+            html = requests.get(url = self.Url + '?filter=1&page=1', headers = self.Headers)
         except:
             self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
 
@@ -72,12 +72,9 @@ class WeiboSpider():
             else:
                 self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
 
-            try:
-                html = requests.get(url = self.Url + '?filter=1&page=1', headers = self.Header)
-            except:
-                self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
+        html = self.GetHtml(url = self.Url + '?filter=1&page=1')
 
-        temp0 = re.findall(r'&nbsp;\d+/\d+', html.content)
+        temp0 = re.findall(r'&nbsp;\d+/\d+', html)
 
         if len(temp0) > 0:
 
@@ -85,6 +82,21 @@ class WeiboSpider():
             self.End = int(temp1[1])
 
         print u'当前微博共 ' + str(self.End) + u' 页'
+
+
+    def GetHtml(self, url):
+        try:
+
+            html = requests.get(url = url, headers = self.Headers)
+
+            if html.status_code == 403:
+                self.ContentBanned()
+
+        except:
+
+            self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
+
+        return html.content
 
         
     def LoadPage(self, PageNo):
@@ -95,17 +107,7 @@ class WeiboSpider():
 
         self.InPage = PageNo
 
-        try:
-            ReqGet = requests.get(url = url, headers = self.Header)
-        except:
-            self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
-
-        if ReqGet.status_code == 403:
-
-            self.ContentBanned()
-
-        else:
-            return ReqGet.content
+        ReqGet = self.GeiHtml(url = url)
 
 
     def ProcessData(self, HtmlPage):
@@ -131,12 +133,8 @@ class WeiboSpider():
 
         for Outer in UrlList1:
 
-            try:
-                ReqGet = requests.get(url = Outer['href'], headers = self.Header)
-            except:
-                self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
-
-            Soup     = BeautifulSoup(ReqGet.content, 'lxml')
+            ReqGet   = self.GeiHtml(url = Outer['href'])
+            Soup     = BeautifulSoup(ReqGet, 'lxml')
             UrlList2 = Soup.find_all('a', href = re.compile(r'^/mblog/oripic', re.I))
 
             time.sleep(0.1)
@@ -203,21 +201,15 @@ class WeiboSpider():
 
             print u'正在下载第 ' + str(i + 1) + u' 张图片'
 
-            try:
-                req = requests.get(url = image['url'], headers = self.Header)
-            except:
-                self.ContentBanned(Error = u'网络连接错误, 请稍后再试')
-            
-            if req.status_code == 403:
-                self.ContentBanned()
+            req = self.GetHtml(url = image['url'])
 
             print u'正在保存图片 ' + image['path']
 
-            self.SaveImage(ImagePath = image['path'], Content = req.content)
+            self.SaveImage(ImagePath = image['path'], Content = req)
 
             time.sleep(1)
 
-        print str(len(self.Img)) + u' 张图片以下载完毕， 等待 30 秒...'
+        print str(len(self.Img)) + u' 张图片已下载完毕， 等待 30 秒...'
         time.sleep(30)
 
 
